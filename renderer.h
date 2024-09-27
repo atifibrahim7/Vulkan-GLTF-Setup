@@ -60,6 +60,7 @@ class Renderer
 		GW::MATH::GVECTORF sunDirection;
 		GW::MATH::GVECTORF sunColor;
 		GW::MATH::GVECTORF cameraPosition;
+		GW::MATH::GMATRIXF worldMatrix;
 		//GW::MATH::GMATRIXF worldMatrix;
 		// float padding[12]; // Adjust padding as needed
 	};
@@ -350,9 +351,11 @@ private:
 	void UpdateUniformBuffer(uint32_t currentImage)
 	{
 		SHADER_VARS shaderVars;
-
+		GW::MATH::GMATRIXF worldMatrix; 
+		math.IdentityF(worldMatrix); // Set the world matrix to identity (no transformation
+		worldMatrix.row3 = { 0.0f, 0.0f, -1.0f, 0.0f }; // Set the translation component of the world matrix
 		// memcpy(shaderVars.worldMatrix, worldMatrix, sizeof(worldMatrix));
-
+		shaderVars.worldMatrix = worldMatrix;
 		shaderVars.viewMatrix = viewMatrix;
 		shaderVars.projectionMatrix = projectionMatrix;
 		shaderVars.sunDirection = { -1.0f, -1.0f, -1.0f, 0.0f };	// Example: light coming from above
