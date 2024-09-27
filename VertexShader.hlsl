@@ -39,9 +39,12 @@ VOut main(OBJ_ATTRIBUTES input)
     output.position = mul(ubo.projectionMatrix, viewPosition);
     
     output.worldPos = worldPosition.xyz;
-    output.normal = mul((float3x3) ubo.worldMatrix, input.Normal);
+    output.normal = normalize(mul((float3x3) ubo.worldMatrix, input.Normal));
     output.uv = input.UV;
-    output.tangent = mul(ubo.worldMatrix, input.Tangent);
+    
+    // Transform tangent to world space while preserving W
+    float3 worldTangent = mul((float3x3) ubo.worldMatrix, input.Tangent.xyz);
+    output.tangent = float4(normalize(worldTangent), input.Tangent.w);
     
     return output;
 }

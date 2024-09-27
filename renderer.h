@@ -470,7 +470,48 @@ private:
 			loadTextureFromMaterial("baseColorTexture");
 
 			loadTextureFromMaterial("metallicRoughnessTexture");
+
+			// Load normal texture
+			if (material.normalTexture.index >= 0)
+			{
+				const tinygltf::Texture& normalTexture = model.textures[material.normalTexture.index];
+				int normalImageIndex = normalTexture.source;
+				if (normalImageIndex >= 0 && normalImageIndex < model.images.size())
+				{
+					const tinygltf::Image& image = model.images[normalImageIndex];
+
+					TextureData normalTextureData;
+					UploadTextureToGPU(vlk, image, normalTextureData.buffer, normalTextureData.memory, normalTextureData.image, normalTextureData.imageView);
+					VkResult result = CreateSampler(vlk, normalTextureData.sampler);
+					if (result != VK_SUCCESS)
+					{
+						throw std::runtime_error("Failed to create normal texture sampler!");
+					}
+					textures.push_back(normalTextureData);
+				}
+			}
+
+			// Load emissive texture
+			if (material.emissiveTexture.index >= 0)
+			{
+				const tinygltf::Texture& emissiveTexture = model.textures[material.emissiveTexture.index];
+				int emissiveImageIndex = emissiveTexture.source;
+				if (emissiveImageIndex >= 0 && emissiveImageIndex < model.images.size())
+				{
+					const tinygltf::Image& image = model.images[emissiveImageIndex];
+
+					TextureData emissiveTextureData;
+					UploadTextureToGPU(vlk, image, emissiveTextureData.buffer, emissiveTextureData.memory, emissiveTextureData.image, emissiveTextureData.imageView);
+					VkResult result = CreateSampler(vlk, emissiveTextureData.sampler);
+					if (result != VK_SUCCESS)
+					{
+						throw std::runtime_error("Failed to create emissive texture sampler!");
+					}
+					textures.push_back(emissiveTextureData);
+				}
+			}
 		}
+
 	}
 
 	void UpdateWindowDimensions()
