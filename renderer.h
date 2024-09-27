@@ -1,4 +1,4 @@
-// minimalistic code to draw a single triangle, this is not part of the API.
+﻿// minimalistic code to draw a single triangle, this is not part of the API.
 #include "shaderc/shaderc.h" // needed for compiling shaders at runtime
 #ifdef _WIN32				 // must use MT platform DLL libraries on windows
 #pragma comment(lib, "shaderc_combined.lib")
@@ -97,13 +97,20 @@ class Renderer
 	};
 	std::vector<TextureData> textures;
 
+	// Work 3
+	std::chrono::steady_clock::time_point startTime; 
+
+
 public:
 	Renderer(GW::SYSTEM::GWindow _win, GW::GRAPHICS::GVulkanSurface _vlk)
 	{
+		startTime = std::chrono::steady_clock::now();
 		win = _win;
 		vlk = _vlk;
 		math.Create();
 		LoadGLTFModel("../Models/WaterBottle/glTF/blender_waterbottle.gltf");
+
+
 
 		CreateViewMatrix();
 		CreateProjectionMatrix();
@@ -302,7 +309,7 @@ private:
 	}
 	void CreateViewMatrix()
 	{
-		GW::MATH::GVECTORF eyePosition = {0.2f, 0.0f, 1.0f, 1.0f};
+		GW::MATH::GVECTORF eyePosition = {0.5f, 0.0f, -0.3f, 1.0f};
 		GW::MATH::GVECTORF lookAtPoint = {0.0f, 0.0f, 0.0f, 1.0f};
 		GW::MATH::GVECTORF upDirection = {0.0f, 1.0f, 0.0f, 0.0f};
 
@@ -319,8 +326,8 @@ private:
 	{
 		GW::MATH::GMATRIXF projectionMatrix;
 		float fov = 40.0f * (M_PI / 180.0f); //  degrees to radians
-		float nearPlane = 0.1f;
-		float farPlane = 100.0f;
+		float farPlane = 0.1f;
+		float nearPlane = 100.0f;
 
 		float aspectRatio;
 		vlk.GetAspectRatio(aspectRatio);
@@ -358,13 +365,27 @@ private:
 		shaderVars.worldMatrix = worldMatrix;
 		shaderVars.viewMatrix = viewMatrix;
 		shaderVars.projectionMatrix = projectionMatrix;
-		shaderVars.sunDirection = { -1.0f, -1.0f, -1.0f, 0.0f };	// Example: light coming from above
+
+		auto currentTime = std::chrono::steady_clock::now();
+		float elapsedSeconds = std::chrono::duration<float>(currentTime - startTime).count();
+
+		float dayDuration = 0.01f; // Full day in hours
+		float timeFactor = (elapsedSeconds / (dayDuration * 3600.0f)) * 2.0f * 3.14159f; 
+
+		float sunHeight = -1.0f; // (0 = horizon, 1 = zenith)
+		float sunAngle = timeFactor; 
+		shaderVars.sunDirection = {
+		cos(sunAngle),
+		sin(sunHeight * 3.14159f / 2.0f), // Adjust height based on desired vertical movement
+		sin(sunAngle),
+		0.0f
+		};
+
+
 		shaderVars.sunColor = {1.0f, 1.0f, 1.0f, 1.0f};			// White light
 		shaderVars.cameraPosition = {-0.5f, 0.25f, 0.5f, 1.0f}; // camera at origin
 		
 		
-		//math.IdentityF(shaderVars.worldMatrix);
-		//ApplyZAxisFlip(shaderVars.worldMatrix); // Flip the model by scaling -1 on the Z-axis
 
 		void *data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(shaderVars), 0, &data);
@@ -403,12 +424,10 @@ private:
 		const tinygltf::Mesh &mesh = model.meshes[0];
 		const tinygltf::Primitive &primitive = mesh.primitives[0]; // Assuming a single primitive
 
-		// Get the index accessor and its bufferView
 		const tinygltf::Accessor &indexAccessor = model.accessors[primitive.indices];
 		const tinygltf::BufferView &indexBufferView = model.bufferViews[indexAccessor.bufferView];
 		indexBufferOffset = indexBufferView.byteOffset;
 
-		// Get the vertex accessor (for POSITION) and its bufferView
 		int positionAccessorIndex = primitive.attributes.find("POSITION")->second;
 		const tinygltf::Accessor &positionAccessor = model.accessors[positionAccessorIndex];
 		const tinygltf::BufferView &vertexBufferView = model.bufferViews[positionAccessor.bufferView];
@@ -827,8 +846,8 @@ private:
 		retval.y = 0;
 		retval.width = static_cast<float>(windowWidth);
 		retval.height = static_cast<float>(windowHeight);
-		retval.minDepth = 0;
-		retval.maxDepth = 1;
+		retval.minDepth = 1;
+		retval.maxDepth = 0;
 		return retval;
 	}
 
@@ -891,8 +910,8 @@ private:
 		retval.depthWriteEnable = VK_TRUE;
 		retval.depthCompareOp = VK_COMPARE_OP_LESS;
 		retval.depthBoundsTestEnable = VK_FALSE;
-		retval.minDepthBounds = 0.0f;
-		retval.maxDepthBounds = 1.0f;
+		retval.maxDepthBounds = 0.0f;
+		retval.minDepthBounds = 1.0f;
 		retval.stencilTestEnable = VK_FALSE;
 		return retval;
 	}
@@ -996,6 +1015,25 @@ public:
 	}
 
 private:
+	VkFramebuffer CreateFramebuffer(VkImageView imageView)
+	{
+		VkFramebuffer framebuffer;
+		VkFramebufferCreateInfo framebufferInfo = {};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = renderPass;
+		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.pAttachments = &imageView;
+		framebufferInfo.width = windowWidth;
+		framebufferInfo.height = windowHeight;
+		framebufferInfo.layers = 1;
+
+		if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &framebuffer) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Failed to create framebuffer!");
+		}
+
+		return framebuffer;
+	}
 	VkCommandBuffer GetCurrentCommandBuffer()
 	{
 		unsigned int currentBuffer;
