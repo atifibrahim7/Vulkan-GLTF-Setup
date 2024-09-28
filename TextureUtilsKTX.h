@@ -3,6 +3,9 @@
 
 // Requires KTX Texture Library and Gateware.h
 
+#define KHRONOS_STATIC
+#include <ktxvulkan.h> 
+
 // function to upload a texture to the GPU
 bool UploadKTXTextureToGPU(	GW::GRAPHICS::GVulkanSurface _surface, const std::string& _ktx_img,
 							VkBuffer& _outTextureBuffer, VkDeviceMemory& _outTextureMemory,

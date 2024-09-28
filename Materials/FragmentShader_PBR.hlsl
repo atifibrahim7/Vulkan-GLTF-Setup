@@ -53,17 +53,19 @@ float3 fresnelSchlick(float3 F0, float cosTheta)
 
 cbuffer SHADER_VARS : register(b0, space0)
 {
-    float4x4 worldMatrix;
     float4x4 viewMatrix;
     float4x4 projectionMatrix;
-    float4 sunDirection, sunColor, sunAmbient, camPos;
+    float4 sunDirection;
+    float4 sunColor;
+    float4 camPos;
+    float4x4 worldMatrix;
 };
 
 struct V_OUT
 {
     float4 pos : SV_POSITION;
     float3 nrm : NORMAL;
-    float2 uv : TEXCOORD_0;
+    float2 uv : TEXCOORD0;
     float4 tangent : TANGENT;
     float3 posW : POSITION;
 };

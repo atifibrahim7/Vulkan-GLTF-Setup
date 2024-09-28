@@ -17,9 +17,11 @@
 #define GATEWARE_ENABLE_MATH
 // With what we want & what we don't defined we can include the API
 #include "Gateware.h"
-#include "FileIntoString.h"	
+#include "FileIntoString.h"
 #include "renderer.h"
 #include "Camera.h"
+
+
 // open some namespaces to compact the code a bit
 using namespace GW;
 using namespace CORE;

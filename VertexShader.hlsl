@@ -24,10 +24,10 @@ cbuffer UboView : register(b0)
 struct VOut
 {
     float4 position : SV_POSITION;
-    float3 worldPos : POSITION;
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
     float4 tangent : TANGENT;
+    float3 worldPos : POSITION;
 };
 
 VOut main(OBJ_ATTRIBUTES input)

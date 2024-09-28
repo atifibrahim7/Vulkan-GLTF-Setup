@@ -5,6 +5,7 @@
 #endif
 #include "Camera.h"
 #include "TextureUtils.h"
+#include "TextureUtilsKTX.h"
 void PrintLabeledDebugString(const char *label, const char *toPrint)
 {
 	std::cout << label << toPrint << std::endl;
@@ -396,7 +397,37 @@ private:
 
 		GvkHelper::write_to_buffer(device, uniformBuffersMemory[currentImage], &shaderVars, sizeof(shaderVars));
 	}
+	void LoadTextureFromFile(const std::string& filePath)
+	{
+		// Load the image using stb_image or another image loading library
+		int width, height, channels;
+		stbi_uc* pixels = stbi_load(filePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 
+		if (!pixels) {
+			throw std::runtime_error("Failed to load texture file: " + filePath);
+		}
+
+		// Create a tinygltf::Image object
+		tinygltf::Image image;
+		image.width = width;
+		image.height = height;
+		image.component = 4; // RGBA
+		image.bits = 8;
+		image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+		image.image.assign(pixels, pixels + (width * height * 4));
+
+		// Free the loaded image data
+		stbi_image_free(pixels);
+
+		// Create TextureData and upload to GPU
+		TextureData textureData;
+		UploadTextureToGPU(vlk, image, textureData.buffer, textureData.memory, textureData.image, textureData.imageView);
+		VkResult result = CreateSampler(vlk, textureData.sampler);
+		if (result != VK_SUCCESS) {
+			throw std::runtime_error("Failed to create texture sampler for: " + filePath);
+		}
+		textures.push_back(textureData);
+	}
 	void LoadGLTFModel(const std::string &filepath)
 	{
 		std::string err;
@@ -510,6 +541,62 @@ private:
 					textures.push_back(emissiveTextureData);
 				}
 			}
+			 std::string lutFilePath = "../PBR IBL ENV/lut_ggx.png"; // Adjust the path as needed
+			 LoadTextureFromFile(lutFilePath);
+
+			 std::cout << "Loaded LUT texture: " << lutFilePath << std::endl;
+
+			 {
+
+			 std::string cubemapFilePath = "../PBR IBL ENV/diffuse.ktx2"; // Adjust the path as needed
+			 TextureData cubemapTextureData;
+			 bool cubemapLoaded = UploadKTXTextureToGPU(vlk, cubemapFilePath,
+				 cubemapTextureData.buffer,
+				 cubemapTextureData.memory,
+				 cubemapTextureData.image,
+				 cubemapTextureData.imageView);
+
+			 if (cubemapLoaded)
+			 {
+				 VkResult result = CreateSampler(vlk, cubemapTextureData.sampler);
+				 if (result != VK_SUCCESS)
+				 {
+					 throw std::runtime_error("Failed to create cubemap texture sampler!");
+				 }
+				 textures.push_back(cubemapTextureData);
+				 std::cout << "Loaded cubemap texture: " << cubemapFilePath << std::endl;
+			 }
+			 else
+			 {
+				 std::cout << "Failed to load cubemap texture: " << cubemapFilePath << std::endl;
+			 }
+
+			 }
+
+
+			 std::string cubemapFilePath = "../PBR IBL ENV/specular.ktx2"; // Adjust the path as needed
+			 TextureData cubemapTextureData;
+			 bool cubemapLoaded = UploadKTXTextureToGPU(vlk, cubemapFilePath,
+				 cubemapTextureData.buffer,
+				 cubemapTextureData.memory,
+				 cubemapTextureData.image,
+				 cubemapTextureData.imageView);
+
+			 if (cubemapLoaded)
+			 {
+				 VkResult result = CreateSampler(vlk, cubemapTextureData.sampler);
+				 if (result != VK_SUCCESS)
+				 {
+					 throw std::runtime_error("Failed to create cubemap texture sampler!");
+				 }
+				 textures.push_back(cubemapTextureData);
+				 std::cout << "Loaded cubemap texture: " << cubemapFilePath << std::endl;
+			 }
+			 else
+			 {
+				 std::cout << "Failed to load cubemap texture: " << cubemapFilePath << std::endl;
+			 }
+
 		}
 
 	}
@@ -710,7 +797,8 @@ private:
 
 	void CompileFragmentShader(const shaderc_compiler_t &compiler, const shaderc_compile_options_t &options)
 	{
-		std::string fragmentShaderSource = ReadFileIntoString("../FragmentShader.hlsl");
+			//std::string fragmentShaderSource = ReadFileIntoString("../FragmentShader.hlsl");
+		std::string fragmentShaderSource = ReadFileIntoString("../Materials/FragmentShader_PBR.hlsl");
 
 		shaderc_compilation_result_t result = shaderc_compile_into_spv( // compile
 			compiler, fragmentShaderSource.c_str(), fragmentShaderSource.length(),

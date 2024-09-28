@@ -37,6 +37,19 @@ if (WIN32)
 	target_include_directories(${PROJECT_NAME} PUBLIC $ENV{VULKAN_SDK}/Include/)
 	target_link_directories(${PROJECT_NAME} PUBLIC $ENV{VULKAN_SDK}/Lib/)
 endif(WIN32)
+include_directories(${CMAKE_SOURCE_DIR}/ktx/include)
+
+if (WIN32)
+	# Find the libraries
+	find_library(KTX_LIB_D NAMES ktx_x64_d PATHS ${CMAKE_SOURCE_DIR}/ktx/lib)
+	find_library(KTX_LIB_R NAMES ktx_x64_r PATHS ${CMAKE_SOURCE_DIR}/ktx/lib)
+	
+	# Link the libraries
+	target_link_libraries(${PROJECT_NAME} debug ${KTX_LIB_D} optimized ${KTX_LIB_R})
+endif(WIN32)
+
+
+
 
 if(UNIX AND NOT APPLE)
 	# libshaderc_combined.a is required for runtime shader compiling

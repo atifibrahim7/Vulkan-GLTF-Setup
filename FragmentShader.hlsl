@@ -14,6 +14,7 @@ struct SHADER_VARS
     float4 sunDirection;
     float4 sunColor;
     float4 cameraPosition;
+    float4x4 worldMatrix;
 };
 
 cbuffer UboView : register(b0, space0)
